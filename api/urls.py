@@ -13,7 +13,4 @@ urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
     path("login/", views.obtain_auth_token, name="login"),
 ]
-#urlpatterns = [
-    #path('register/' , RegisterUser.as_view())
-#]
 
