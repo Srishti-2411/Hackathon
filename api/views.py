@@ -1,70 +1,52 @@
-from django.shortcuts import render
+from django.contrib.auth.forms import AuthenticationForm,UserCreationForm
 from django.contrib.auth.models import User
-from api.serializers import UserSerializer
-from .models import *
-from .serializers import *
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import generics
-from rest_framework.authtoken.models import Token
-from rest_framework import status
-from .serializers import PollSerializer, ChoiceSerializer, VoteSerializer, UserSerializer
-from django.contrib.auth import authenticate
-from rest_framework.exceptions import PermissionDenied
-from rest_framework import viewsets
-
-
-class PollViewSet(viewsets.ModelViewSet):
-    # ...
-
-    def destroy(self, request, *args, **kwargs):
-        poll = Poll.objects.get(pk=self.kwargs["pk"])
-        if not request.user == poll.created_by:
-            raise PermissionDenied("You can not delete this poll.")
-        return super().destroy(request, *args, **kwargs)
-
-
-class ChoiceList(generics.ListCreateAPIView):
-    # ...
-
-    def post(self, request, *args, **kwargs):
-        poll = Poll.objects.get(pk=self.kwargs["pk"])
-        if not request.user == poll.created_by:
-            raise PermissionDenied("You can not create choice for this poll.")
-        return super().post(request, *args, **kwargs)
-
-class LoginView(APIView):
-    permission_classes = ()
-
-    def post(self, request,):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-        if user:
-            return Response({"token": user.auth_token.key})
-        else:
-            return Response({"error": "Wrong Credentials"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserCreate(generics.CreateAPIView):
-    serializer_class = UserSerializer    
-
-class UserCreate(generics.CreateAPIView):
-    authentication_classes = ()
-    permission_classes = ()
-    serializer_class = UserSerializer  
-
-
-
+from django.shortcuts import render, redirect
+from django.contrib import auth
+from django.contrib import messages
+from .forms import RegisterForm,UserUpdateForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, authenticate 
 # Create your views here.
-#class RegisterUser(APIView):
-    #def post(self , request):
-        #serializer = UserSerializer(data = request.data)
-        #if not serializer.is_valid():
-            #return Response({'status' :403 , 'errors' : serializer.errors , 'message' : 'something went wrong'})
-        #serializer.save()
+def registerpage (request):
+    print(request.method)
+    print('check')
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        print(form)
+        print('check2')
+        if form.is_valid():
+            print('TRUE')
+            form.save()
+            messages.success(request,'your account has been created !!you are now able to log in ')
+        else:
+            print("false")
+    else:
+        print('FALSE')
+        form = RegisterForm()
+    return render(request,'Register.html',{'form':form})
 
-        #user = User.objects.get(username = serializer.data['username'])
-        #token_obj , _ = Token.objects.get_or_create(user=user)
+def loginpage (request):
+    if request.method == "POST":
+        form = AuthenticationForm(request.POST)
+    
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            print(user)
+            if user is not None:
+                login(request, user)
+                messages.info(request, f"You are now logged in as {username}.")
+                return redirect("/")
+            else:
+                messages.error(request,"Invalid username or password.")
+    else:
+        form = AuthenticationForm()
+    
+    return render(request,'login.html',{'form':form})
 
-        #return Response({'status' :200 , 'payload' : serializer.data ,'token' : str(token_obj) ,'message' : 'Your data is saved'})
+def log_out(request):
+    auth.logout(request)
+    return redirect('/login')
+
+
